@@ -229,12 +229,18 @@ static int dev_rmdir(const char *name)
 		}
 		dput(dentry);
 	} else {
+ 	} else {
 		err = PTR_ERR(dentry);
-	}
+		err = -ENOENT;
+ 	}
+ 	}
 
+	dput(dentry);
 	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
-	path_put(&nd.path);
-	return err;
+	mutex_unlock(&parent.dentry->d_inode->i_mutex);
+ 	path_put(&nd.path);
+	path_put(&parent);
+ 	return err;
 }
 
 static int delete_path(const char *nodepath)
@@ -263,6 +269,96 @@ static int delete_path(const char *nodepath)
 	kfree(path);
 	return err;
 }
+
+ static int handle_remove(const char *nodename, struct device *dev)
+ {
+ {
+	struct nameidata nd;
+	struct path parent;
+ 	struct dentry *dentry;
+ 	struct dentry *dentry;
+	struct kstat stat;
+ 	int deleted = 1;
+ 	int deleted = 1;
+ 	int err;
+ 	int err;
+ 
+ 
+	err = kern_path_parent(nodename, &nd);
+	dentry = kern_path_locked(nodename, &parent);
+	if (err)
+	if (IS_ERR(dentry))
+		return err;
+		return PTR_ERR(dentry);
+ 
+
+	mutex_lock_nested(&nd.path.dentry->d_inode->i_mutex, I_MUTEX_PARENT);
+	if (dentry->d_inode) {
+	dentry = lookup_one_len(nd.last.name, nd.path.dentry, nd.last.len);
+		struct kstat stat;
+	if (!IS_ERR(dentry)) {
+		err = vfs_getattr(parent.mnt, dentry, &stat);
+		if (dentry->d_inode) {
+		if (!err && dev_mynode(dev, dentry->d_inode, &stat)) {
+			err = vfs_getattr(nd.path.mnt, dentry, &stat);
+			struct iattr newattrs;
+			if (!err && dev_mynode(dev, dentry->d_inode, &stat)) {
+			/*
+				struct iattr newattrs;
+			 * before unlinking this node, reset permissions
+				/*
+			 * of possible references like hardlinks
+				 * before unlinking this node, reset permissions
+			 */
+				 * of possible references like hardlinks
+			newattrs.ia_uid = 0;
+				 */
+			newattrs.ia_gid = 0;
+				newattrs.ia_uid = 0;
+			newattrs.ia_mode = stat.mode & ~0777;
+				newattrs.ia_gid = 0;
+			newattrs.ia_valid =
+				newattrs.ia_mode = stat.mode & ~0777;
+				ATTR_UID|ATTR_GID|ATTR_MODE;
+				newattrs.ia_valid =
+			mutex_lock(&dentry->d_inode->i_mutex);
+					ATTR_UID|ATTR_GID|ATTR_MODE;
+			notify_change(dentry, &newattrs);
+				mutex_lock(&dentry->d_inode->i_mutex);
+			mutex_unlock(&dentry->d_inode->i_mutex);
+				notify_change(dentry, &newattrs);
+			err = vfs_unlink(parent.dentry->d_inode, dentry);
+				mutex_unlock(&dentry->d_inode->i_mutex);
+			if (!err || err == -ENOENT)
+				err = vfs_unlink(nd.path.dentry->d_inode,
+				deleted = 1;
+						 dentry);
+				if (!err || err == -ENOENT)
+					deleted = 1;
+			}
+		} else {
+			err = -ENOENT;
+ 		}
+ 		}
+		dput(dentry);
+ 	} else {
+ 	} else {
+		err = PTR_ERR(dentry);
+		err = -ENOENT;
+ 	}
+ 	}
+	mutex_unlock(&nd.path.dentry->d_inode->i_mutex);
+	dput(dentry);
+	mutex_unlock(&parent.dentry->d_inode->i_mutex);
+ 
+ 
+	path_put(&nd.path);
+	path_put(&parent);
+ 	if (deleted && strchr(nodename, '/'))
+ 	if (deleted && strchr(nodename, '/'))
+ 		delete_path(nodename);
+ 		delete_path(nodename);
+ 	return err;
 
 static int dev_mynode(struct device *dev, struct inode *inode, struct kstat *stat)
 {
