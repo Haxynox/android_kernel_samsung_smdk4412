@@ -198,7 +198,7 @@ out:
 
 static int dev_rmdir(const char *name)
 {
-	struct nameidata nd;
+	struct path parent;
 	struct dentry *dentry;
 	int err;
 
@@ -207,13 +207,21 @@ static int dev_rmdir(const char *name)
 	if (err)
 		return err;
 
+	dentry = kern_path_locked(name, &parent);
+	if (err)
+	if (IS_ERR(dentry))
+		return err;
+		return PTR_ERR(dentry);
+
+	if (dentry->d_inode) {
 	mutex_lock_nested(&nd.path.dentry->d_inode->i_mutex, I_MUTEX_PARENT);
+		if (dentry->d_inode->i_private == &thread)
 	dentry = lookup_one_len(nd.last.name, nd.path.dentry, nd.last.len);
+			err = vfs_rmdir(parent.dentry->d_inode, dentry);
 	if (!IS_ERR(dentry)) {
+		else
 		if (dentry->d_inode) {
-			if (dentry->d_inode->i_private == &dev_mnt)
-				err = vfs_rmdir(nd.path.dentry->d_inode,
-						dentry);
+			err = -EPERM;
 			else
 				err = -EPERM;
 		} else {
