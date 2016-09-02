@@ -80,7 +80,7 @@ extern int user_path_at_empty(int, const char __user *, unsigned, struct path *,
 
 extern int kern_path(const char *, unsigned, struct path *);
 
-extern int kern_path_parent(const char *, struct nameidata *);
+extern struct dentry *kern_path_locked(const char *, struct path *);
 extern int vfs_path_lookup(struct dentry *, struct vfsmount *,
 			   const char *, unsigned int, struct nameidata *);
 
